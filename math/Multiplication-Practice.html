@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Times Table Practice</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 500px;
+            margin: auto;
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        .question {
+            font-size: 32px;
+            margin: 20px 0;
+        }
+        input {
+            font-size: 24px;
+            padding: 10px;
+            width: 80px;
+            text-align: center;
+        }
+        button {
+            font-size: 24px;
+            padding: 10px 20px;
+            margin-top: 10px;
+            cursor: pointer;
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+        .button-review-mistake {
+            font-size: 12px;
+            padding: 10px 20px;
+            margin-top: 5px;
+            cursor: pointer;
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 3px;
+        }
+        button:hover {
+            background: #218838;
+        }
+        #feedback {
+            font-size: 24px;
+            margin-top: 10px;
+            color: red;
+        }
+        #remaining-questions {
+            font-size: 20px;
+            color: gray;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Times Table Practice</h1>
+        <h3>Select numbers to practice:</h3>
+        <div id="number-selection"></div>
+        <h3>Select Test Mode:</h3>
+        <label><input type="radio" name="mode" value="random" checked> Randomly generated</label>
+        <label><input type="radio" name="mode" value="sequential"> All Combinations once</label>
+        <button onclick="startPractice()">Start Practice</button>
+        
+        <div id="practice-section" style="display: none;">
+            <p class="question" id="question"></p>
+            <p id="remaining-questions"></p>
+            <input type="number" id="answer" placeholder="Enter answer" onkeypress="handleKeyPress(event)" /><span id="feedback"></span>
+            <br />
+            <button class="button-review-mistake" onclick="reviewResults()">Review Mistakes</button>
+            <div id="review-section" style="display: none;"></div>
+        </div>
+    </div>
+
+    <script>
+        const numberSelectionDiv = document.getElementById('number-selection');
+        
+        for (let i = 1; i <= 10; i++) {
+            let checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.value = i;
+            checkbox.id = `num${i}`;
+            
+            let label = document.createElement('label');
+            label.htmlFor = `num${i}`;
+            label.innerText = i;
+            label.style.marginRight = '10px';
+            
+            numberSelectionDiv.appendChild(checkbox);
+            numberSelectionDiv.appendChild(label);
+        }
+
+        let selectedNumbers = [];
+        let questionHistory = [];
+        let allQuestions = [];
+        let currentQuestion = {};
+        let startTime;
+        let mode;
+
+        function startPractice() {
+            selectedNumbers = [...document.querySelectorAll('#number-selection input:checked')]
+                .map(checkbox => parseInt(checkbox.value));
+            mode = document.querySelector('input[name="mode"]:checked').value;
+            
+            if (selectedNumbers.length === 0) {
+                alert('Please select at least one number!');
+                return;
+            }
+            
+            document.getElementById('review-section').innerHTML = '';
+            document.getElementById('review-section').style.display = 'none';
+            
+            questionHistory = [];
+            allQuestions = [];
+            if (mode === "sequential") {
+                for (let num1 of selectedNumbers) {
+                    for (let num2 = 1; num2 <= 10; num2++) {
+                        allQuestions.push({ num1, num2, answer: num1 * num2 });
+                    }
+                }
+                allQuestions.sort(() => Math.random() - 0.5);
+            }
+            
+            document.getElementById('practice-section').style.display = 'block';
+            generateQuestion();
+        }
+
+        function generateQuestion() {
+            if (mode === "random") {
+                let num1 = selectedNumbers[Math.floor(Math.random() * selectedNumbers.length)];
+                let num2 = Math.floor(Math.random() * 10) + 1;
+                currentQuestion = { num1, num2, answer: num1 * num2 };
+                document.getElementById('remaining-questions').innerText = '';
+            } else {
+                if (allQuestions.length === 0) {
+                    alert("Test completed!");
+                    return;
+                }
+                currentQuestion = allQuestions.pop();
+                document.getElementById('remaining-questions').innerText = `Remaining Questions: ${allQuestions.length}`;
+            }
+            
+            document.getElementById('question').innerText = `${currentQuestion.num1} × ${currentQuestion.num2} = ?`;
+            document.getElementById('answer').value = '';
+            document.getElementById('feedback').innerText = '';
+            document.getElementById('answer').focus();
+            startTime = new Date();
+        }
+        
+        function checkAnswer() {
+            let userAnswer = parseInt(document.getElementById('answer').value);
+            let elapsedTime = (new Date() - startTime) / 1000;
+            let correct = userAnswer === currentQuestion.answer;
+            
+            questionHistory.push({ ...currentQuestion, correct, elapsedTime });
+            
+            if (correct) {
+                document.getElementById('feedback').innerText = 'Correct! 🎉';
+                setTimeout(generateQuestion, 1000);
+            } else {
+                document.getElementById('feedback').innerText = 'Incorrect, try again!';
+                document.getElementById('answer').value = '';
+                document.getElementById('answer').focus();
+            }
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                checkAnswer();
+            }
+        }
+        
+        function reviewResults() {
+            let reviewSection = document.getElementById('review-section');
+            reviewSection.innerHTML = '';
+            questionHistory.forEach(q => {
+                if (!q.correct || q.elapsedTime > 10) {
+                    let p = document.createElement('p');
+                    p.innerText = `${q.num1} × ${q.num2} = ${q.answer} (Time: ${q.elapsedTime.toFixed(2)}s)`;
+                    reviewSection.appendChild(p);
+                }
+            });
+            reviewSection.style.display = 'block';
+        }
+    </script>
+</body>
+</html>
